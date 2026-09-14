@@ -1,0 +1,271 @@
+# yoshi449.suizyaku.io
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <title>神経衰弱 タイムアタック</title>
+  <style>
+    body {
+      font-family: system-ui, sans-serif;
+      background: #222;
+      color: #fff;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      margin: 0;
+      padding: 20px;
+    }
+
+    h1 {
+      margin-bottom: 10px;
+    }
+
+    #info {
+      margin-bottom: 15px;
+    }
+
+    #info span {
+      margin-right: 15px;
+    }
+
+    #board {
+      display: grid;
+      grid-template-columns: repeat(4, 80px);
+      grid-gap: 10px;
+      margin-bottom: 15px;
+    }
+
+    .card {
+      width: 80px;
+      height: 110px;
+      background: #444;
+      border-radius: 8px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 32px;
+      cursor: pointer;
+      user-select: none;
+      transition: transform 0.15s, background 0.15s;
+    }
+
+    .card.flipped {
+      background: #f5f5f5;
+      color: #222;
+      transform: scale(1.05);
+      cursor: default;
+    }
+
+    .card.matched {
+      background: #4caf50;
+      color: #fff;
+      cursor: default;
+      transform: scale(1.02);
+    }
+
+    #controls {
+      display: flex;
+      gap: 10px;
+    }
+
+    button {
+      padding: 6px 12px;
+      border-radius: 4px;
+      border: none;
+      cursor: pointer;
+      font-size: 14px;
+    }
+
+    #startBtn {
+      background: #2196f3;
+      color: #fff;
+    }
+
+    #resetBtn {
+      background: #777;
+      color: #fff;
+    }
+
+    #message {
+      margin-top: 10px;
+      min-height: 1.2em;
+    }
+  </style>
+</head>
+<body>
+  <h1>神経衰弱 タイムアタック</h1>
+
+  <div id="info">
+    <span>経過時間: <span id="time">0.00</span> 秒</span>
+    <span>ミス回数: <span id="misses">0</span></span>
+  </div>
+
+  <div id="board"></div>
+
+  <div id="controls">
+    <button id="startBtn">スタート</button>
+    <button id="resetBtn">リセット</button>
+  </div>
+
+  <div id="message"></div>
+
+  <script>
+    const boardEl = document.getElementById('board');
+    const timeEl = document.getElementById('time');
+    const missesEl = document.getElementById('misses');
+    const messageEl = document.getElementById('message');
+    const startBtn = document.getElementById('startBtn');
+    const resetBtn = document.getElementById('resetBtn');
+
+    const PAIRS = 8; // 4x4
+    let cards = [];
+    let firstCard = null;
+    let secondCard = null;
+    let lockBoard = false;
+
+    let startTime = null;
+    let timerId = null;
+    let finished = false;
+    let misses = 0;
+    let matchedCount = 0;
+
+    function createDeck() {
+      const values = [];
+      for (let i = 1; i <= PAIRS; i++) {
+        values.push(i, i); // ペアを作る
+      }
+      // シャッフル
+      for (let i = values.length - 1; i > 0; i--) {
+        const j = Math.floor(Math.random() * (i + 1));
+        [values[i], values[j]] = [values[j], values[i]];
+      }
+      return values;
+    }
+
+    function setupBoard() {
+      boardEl.innerHTML = '';
+      cards = [];
+      const values = createDeck();
+
+      values.forEach((value, index) => {
+        const cardEl = document.createElement('div');
+        cardEl.classList.add('card');
+        cardEl.dataset.value = value;
+        cardEl.dataset.index = index;
+        cardEl.textContent = ''; // 裏側は空
+
+        cardEl.addEventListener('click', () => handleCardClick(cardEl));
+        boardEl.appendChild(cardEl);
+        cards.push(cardEl);
+      });
+    }
+
+    function startGame() {
+      finished = false;
+      misses = 0;
+      matchedCount = 0;
+      firstCard = null;
+      secondCard = null;
+      lockBoard = false;
+      missesEl.textContent = misses;
+      messageEl.textContent = '';
+
+      setupBoard();
+      startTime = performance.now();
+      if (timerId) {
+        clearInterval(timerId);
+      }
+      timerId = setInterval(updateTime, 50);
+    }
+
+    function resetGame() {
+      clearInterval(timerId);
+      timerId = null;
+      timeEl.textContent = '0.00';
+      missesEl.textContent = '0';
+      messageEl.textContent = '';
+      finished = false;
+      misses = 0;
+      matchedCount = 0;
+      firstCard = null;
+      secondCard = null;
+      lockBoard = false;
+      setupBoard();
+    }
+
+    function updateTime() {
+      if (!startTime || finished) return;
+      const now = performance.now();
+      const elapsed = (now - startTime) / 1000;
+      timeEl.textContent = elapsed.toFixed(2);
+    }
+
+    function handleCardClick(cardEl) {
+      if (lockBoard || finished) return;
+      if (cardEl.classList.contains('flipped') || cardEl.classList.contains('matched')) return;
+
+      flipCard(cardEl);
+
+      if (!firstCard) {
+        firstCard = cardEl;
+        return;
+      }
+
+      secondCard = cardEl;
+      checkMatch();
+    }
+
+    function flipCard(cardEl) {
+      cardEl.classList.add('flipped');
+      cardEl.textContent = cardEl.dataset.value;
+    }
+
+    function unflipCard(cardEl) {
+      cardEl.classList.remove('flipped');
+      cardEl.textContent = '';
+    }
+
+    function checkMatch() {
+      const isMatch = firstCard.dataset.value === secondCard.dataset.value;
+
+      if (isMatch) {
+        firstCard.classList.add('matched');
+        secondCard.classList.add('matched');
+        matchedCount += 2;
+        resetTurn();
+        if (matchedCount === PAIRS * 2) {
+          finishGame();
+        }
+      } else {
+        lockBoard = true;
+        misses++;
+        missesEl.textContent = misses;
+        setTimeout(() => {
+          unflipCard(firstCard);
+          unflipCard(secondCard);
+          resetTurn();
+        }, 700);
+      }
+    }
+
+    function resetTurn() {
+      [firstCard, secondCard] = [null, null];
+      lockBoard = false;
+    }
+
+    function finishGame() {
+      finished = true;
+      clearInterval(timerId);
+      timerId = null;
+      const finalTime = parseFloat(timeEl.textContent);
+      messageEl.textContent = `クリア！タイム: ${finalTime.toFixed(2)} 秒 / ミス: ${misses} 回`;
+    }
+
+    startBtn.addEventListener('click', startGame);
+    resetBtn.addEventListener('click', resetGame);
+
+    // 初期表示（まだタイムは動かさない）
+    setupBoard();
+  </script>
+</body>
+</html>
