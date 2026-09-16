@@ -1,271 +1,2218 @@
-# yoshi449.suizyaku.io
 <!DOCTYPE html>
 <html lang="ja">
+
 <head>
+
   <meta charset="UTF-8">
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
   <title>神経衰弱 タイムアタック</title>
+
   <style>
-    body {
-      font-family: system-ui, sans-serif;
-      background: #222;
-      color: #fff;
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      margin: 0;
-      padding: 20px;
+
+    /* =========================================
+       全体設定
+       ========================================= */
+
+    * {
+      box-sizing: border-box;
     }
+
+    html {
+      min-height: 100%;
+    }
+
+    body {
+
+      margin: 0;
+
+      min-height: 100vh;
+      min-height: 100dvh;
+
+      font-family:
+        "Segoe UI",
+        "Yu Gothic",
+        "Hiragino Kaku Gothic ProN",
+        system-ui,
+        sans-serif;
+
+      color: #ffffff;
+
+      background:
+        radial-gradient(
+          circle at center,
+          #101d42 0%,
+          #060b1d 45%,
+          #02040d 100%
+        );
+
+      display: flex;
+
+      justify-content: center;
+      align-items: flex-start;
+
+      position: relative;
+
+      /* ここを変更
+         hidden → auto
+         画面が小さい場合にスクロールできる */
+      overflow-x: hidden;
+      overflow-y: auto;
+
+      padding: 20px 0;
+    }
+
+
+    /* =========================================
+       背景グリッド
+       ========================================= */
+
+    body::before {
+
+      content: "";
+
+      position: fixed;
+
+      inset: 0;
+
+      background-image:
+
+        linear-gradient(
+          rgba(0, 180, 255, 0.07) 1px,
+          transparent 1px
+        ),
+
+        linear-gradient(
+          90deg,
+          rgba(0, 180, 255, 0.07) 1px,
+          transparent 1px
+        );
+
+      background-size: 40px 40px;
+
+      pointer-events: none;
+
+      z-index: 0;
+
+      mask-image:
+        linear-gradient(
+          to bottom,
+          transparent,
+          black 20%,
+          black 80%,
+          transparent
+        );
+    }
+
+
+    /* =========================================
+       背景の光
+       ========================================= */
+
+    body::after {
+
+      content: "";
+
+      position: fixed;
+
+      width: 700px;
+      height: 700px;
+
+      border-radius: 50%;
+
+      background:
+        radial-gradient(
+          circle,
+          rgba(0, 153, 255, 0.12),
+          transparent 65%
+        );
+
+      pointer-events: none;
+
+      z-index: 0;
+    }
+
+
+    /* =========================================
+       画面切り替え
+       ========================================= */
+
+    .screen {
+
+      display: none;
+
+      width: min(92vw, 900px);
+
+      /*
+        600px固定ではなく、
+        画面サイズに合わせて余裕を持たせる
+      */
+      min-height: calc(100dvh - 40px);
+
+      flex-direction: column;
+
+      align-items: center;
+
+      justify-content: center;
+
+      position: relative;
+
+      padding: 30px 0;
+
+      z-index: 1;
+    }
+
+
+    .screen.active {
+      display: flex;
+    }
+
+
+    /* =========================================
+       近未来パネル
+       ========================================= */
+
+    .panel {
+
+      position: relative;
+
+      width: 100%;
+
+      padding: 40px;
+
+      background:
+        linear-gradient(
+          145deg,
+          rgba(9, 25, 58, 0.95),
+          rgba(3, 9, 25, 0.97)
+        );
+
+      border: 1px solid rgba(0, 195, 255, 0.7);
+
+      box-shadow:
+
+        0 0 15px rgba(0, 180, 255, 0.25),
+
+        inset 0 0 30px
+        rgba(0, 100, 255, 0.08);
+
+      clip-path: polygon(
+
+        25px 0,
+
+        calc(100% - 25px) 0,
+
+        100% 25px,
+
+        100% calc(100% - 25px),
+
+        calc(100% - 25px) 100%,
+
+        25px 100%,
+
+        0 calc(100% - 25px),
+
+        0 25px
+      );
+    }
+
+
+    /* =========================================
+       パネル装飾
+       ========================================= */
+
+    .panel::before,
+    .panel::after {
+
+      content: "";
+
+      position: absolute;
+
+      width: 70px;
+
+      height: 3px;
+
+      background: #00d9ff;
+
+      box-shadow:
+
+        0 0 10px #00d9ff,
+
+        0 0 25px
+        rgba(0, 217, 255, 0.8);
+    }
+
+
+    .panel::before {
+
+      top: 12px;
+
+      left: 35px;
+    }
+
+
+    .panel::after {
+
+      bottom: 12px;
+
+      right: 35px;
+
+      background: #a855ff;
+
+      box-shadow:
+
+        0 0 10px #a855ff,
+
+        0 0 25px
+        rgba(168, 85, 255, 0.8);
+    }
+
+
+    /* =========================================
+       タイトル
+       ========================================= */
 
     h1 {
-      margin-bottom: 10px;
+
+      margin: 0 0 30px;
+
+      text-align: center;
+
+      font-size:
+        clamp(28px, 5vw, 52px);
+
+      line-height: 1.3;
+
+      letter-spacing: 0.08em;
+
+      color: #ffffff;
+
+      text-shadow:
+
+        0 0 5px #ffffff,
+
+        0 0 15px #00cfff,
+
+        0 0 35px #0077ff;
     }
 
-    #info {
-      margin-bottom: 15px;
+
+    /* =========================================
+       サブタイトル
+       ========================================= */
+
+    .sub-title {
+
+      text-align: center;
+
+      margin-top: -15px;
+
+      margin-bottom: 35px;
+
+      color: #7cecff;
+
+      font-size: 14px;
+
+      letter-spacing: 0.2em;
+
+      text-shadow:
+        0 0 10px #00cfff;
     }
 
-    #info span {
-      margin-right: 15px;
+
+    /* =========================================
+       スタート画面
+       ========================================= */
+
+    #start-screen .panel {
+
+      max-width: 700px;
+
+      text-align: center;
+
+      padding-top: 65px;
+
+      padding-bottom: 65px;
     }
 
-    #board {
-      display: grid;
-      grid-template-columns: repeat(4, 80px);
-      grid-gap: 10px;
-      margin-bottom: 15px;
-    }
 
-    .card {
-      width: 80px;
-      height: 110px;
-      background: #444;
-      border-radius: 8px;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      font-size: 32px;
-      cursor: pointer;
-      user-select: none;
-      transition: transform 0.15s, background 0.15s;
-    }
-
-    .card.flipped {
-      background: #f5f5f5;
-      color: #222;
-      transform: scale(1.05);
-      cursor: default;
-    }
-
-    .card.matched {
-      background: #4caf50;
-      color: #fff;
-      cursor: default;
-      transform: scale(1.02);
-    }
-
-    #controls {
-      display: flex;
-      gap: 10px;
-    }
+    /* =========================================
+       ボタン共通
+       ========================================= */
 
     button {
-      padding: 6px 12px;
-      border-radius: 4px;
-      border: none;
+
+      position: relative;
+
+      border: 1px solid #00d9ff;
+
+      background:
+        linear-gradient(
+          90deg,
+          rgba(0, 130, 255, 0.18),
+          rgba(120, 40, 255, 0.18)
+        );
+
+      color: #ffffff;
+
+      font-size: 16px;
+
+      font-weight: bold;
+
+      letter-spacing: 0.12em;
+
       cursor: pointer;
-      font-size: 14px;
+
+      padding: 13px 30px;
+
+      min-width: 150px;
+
+      border-radius: 4px;
+
+      box-shadow:
+
+        0 0 10px
+        rgba(0, 200, 255, 0.4),
+
+        inset 0 0 12px
+        rgba(0, 180, 255, 0.08);
+
+      transition:
+
+        transform 0.2s,
+
+        box-shadow 0.2s,
+
+        background 0.2s;
     }
+
+
+    button:hover {
+
+      transform: translateY(-2px);
+
+      background:
+        linear-gradient(
+          90deg,
+          rgba(0, 180, 255, 0.35),
+          rgba(150, 60, 255, 0.35)
+        );
+
+      box-shadow:
+
+        0 0 15px #00cfff,
+
+        0 0 35px
+        rgba(0, 150, 255, 0.5);
+    }
+
+
+    button:active {
+
+      transform: scale(0.97);
+    }
+
+
+    /* =========================================
+       スタートボタン
+       ========================================= */
 
     #startBtn {
-      background: #2196f3;
-      color: #fff;
+
+      min-width: 280px;
+
+      padding: 18px 40px;
+
+      font-size: 21px;
+
+      border-radius: 40px;
+
+      border: 2px solid #00d9ff;
+
+      background:
+        linear-gradient(
+          90deg,
+          rgba(0, 120, 255, 0.4),
+          rgba(150, 40, 255, 0.4)
+        );
+
+      box-shadow:
+
+        0 0 10px #00d9ff,
+
+        0 0 30px
+        rgba(0, 150, 255, 0.5),
+
+        inset 0 0 20px
+        rgba(0, 180, 255, 0.15);
     }
 
-    #resetBtn {
-      background: #777;
-      color: #fff;
+
+    #startBtn::before {
+
+      content: "▶";
+
+      margin-right: 12px;
+
+      color: #ffffff;
+
+      text-shadow:
+        0 0 8px #00d9ff;
     }
+
+
+    /* =========================================
+       ゲーム画面
+       ========================================= */
+
+    #game-screen {
+
+      width: min(95vw, 900px);
+
+      /*
+        上寄せにすることで
+        小さい画面でも下が切れにくい
+      */
+      justify-content: flex-start;
+
+      padding-top: 10px;
+    }
+
+
+    #game-screen .panel {
+
+      padding: 30px 25px;
+
+      display: flex;
+
+      flex-direction: column;
+
+      align-items: center;
+    }
+
+
+    #game-screen h1 {
+
+      font-size:
+        clamp(24px, 4vw, 40px);
+
+      margin-bottom: 22px;
+    }
+
+
+    /* =========================================
+       HUD
+       ========================================= */
+
+    #info {
+
+      display: flex;
+
+      justify-content: center;
+
+      gap: 15px;
+
+      width: 100%;
+
+      margin-bottom: 20px;
+    }
+
+
+    .status-box {
+
+      min-width: 200px;
+
+      padding: 10px 20px;
+
+      background:
+        linear-gradient(
+          135deg,
+          rgba(0, 120, 255, 0.14),
+          rgba(5, 15, 40, 0.9)
+        );
+
+      border: 1px solid
+        rgba(0, 200, 255, 0.7);
+
+      clip-path: polygon(
+
+        15px 0,
+
+        calc(100% - 15px) 0,
+
+        100% 15px,
+
+        100% calc(100% - 15px),
+
+        calc(100% - 15px) 100%,
+
+        15px 100%,
+
+        0 calc(100% - 15px),
+
+        0 15px
+      );
+
+      box-shadow:
+
+        0 0 12px
+        rgba(0, 190, 255, 0.25);
+    }
+
+
+    .status-label {
+
+      display: block;
+
+      font-size: 11px;
+
+      color: #72ddff;
+
+      letter-spacing: 0.15em;
+
+      margin-bottom: 2px;
+    }
+
+
+    .status-value {
+
+      font-size: 24px;
+
+      font-weight: bold;
+
+      color: #ffffff;
+
+      text-shadow:
+        0 0 8px #00cfff;
+    }
+
+
+    /* =========================================
+       カードボード
+       ========================================= */
+
+    #board {
+
+      display: grid;
+
+      grid-template-columns:
+        repeat(4, 90px);
+
+      gap: 11px;
+
+      margin-bottom: 20px;
+
+      padding: 15px;
+
+      background:
+        rgba(0, 10, 30, 0.65);
+
+      border: 1px solid
+        rgba(0, 150, 255, 0.35);
+
+      box-shadow:
+
+        inset 0 0 30px
+        rgba(0, 100, 255, 0.08);
+    }
+
+
+    /* =========================================
+       カード
+       ========================================= */
+
+    .card {
+
+      width: 90px;
+
+      height: 105px;
+
+      position: relative;
+
+      display: flex;
+
+      align-items: center;
+
+      justify-content: center;
+
+      border-radius: 8px;
+
+      cursor: pointer;
+
+      user-select: none;
+
+      font-size: 32px;
+
+      font-weight: bold;
+
+      color: transparent;
+
+      background:
+        linear-gradient(
+          145deg,
+          #071b3d,
+          #03091d
+        );
+
+      border: 1px solid #007dff;
+
+      box-shadow:
+
+        0 0 7px
+        rgba(0, 120, 255, 0.55),
+
+        inset 0 0 15px
+        rgba(0, 130, 255, 0.12);
+
+      transition:
+
+        transform 0.2s,
+
+        box-shadow 0.2s,
+
+        background 0.2s;
+
+      overflow: hidden;
+    }
+
+
+    /* =========================================
+       カード裏面
+       ========================================= */
+
+    .card::before {
+
+      content: "◇";
+
+      position: absolute;
+
+      top: 50%;
+      left: 50%;
+
+      transform:
+        translate(-50%, -50%);
+
+      font-size: 38px;
+
+      color: #00cfff;
+
+      text-shadow:
+
+        0 0 5px #00cfff,
+
+        0 0 15px #008cff;
+
+      transition:
+        opacity 0.2s;
+    }
+
+
+    .card::after {
+
+      content: "";
+
+      position: absolute;
+
+      width: 55%;
+
+      height: 1px;
+
+      left: 22.5%;
+
+      bottom: 15px;
+
+      background: #00cfff;
+
+      box-shadow:
+        0 0 6px #00cfff;
+    }
+
+
+    /* =========================================
+       カードホバー
+       ========================================= */
+
+    .card:hover {
+
+      transform: translateY(-3px);
+
+      border-color: #00eaff;
+
+      box-shadow:
+
+        0 0 10px #00cfff,
+
+        0 0 25px
+        rgba(0, 160, 255, 0.55),
+
+        inset 0 0 20px
+        rgba(0, 180, 255, 0.15);
+    }
+
+
+    /* =========================================
+       開いたカード
+       ========================================= */
+
+    .card.flipped {
+
+      background:
+        linear-gradient(
+          145deg,
+          #eaffff,
+          #9eeaff
+        );
+
+      color: #03132e;
+
+      border-color: #00f0ff;
+
+      transform: scale(1.05);
+
+      box-shadow:
+
+        0 0 12px #00eaff,
+
+        0 0 30px
+        rgba(0, 220, 255, 0.8),
+
+        inset 0 0 20px
+        rgba(255, 255, 255, 0.8);
+
+      cursor: default;
+    }
+
+
+    .card.flipped::before {
+
+      opacity: 0;
+    }
+
+
+    .card.flipped::after {
+
+      background: #007cff;
+
+      box-shadow:
+        0 0 5px #007cff;
+    }
+
+
+    /* =========================================
+       揃ったカード
+       ========================================= */
+
+    .card.matched {
+
+      background:
+        linear-gradient(
+          145deg,
+          #00f5d4,
+          #007e91
+        );
+
+      color: #ffffff;
+
+      border-color: #55fff0;
+
+      transform: scale(1.03);
+
+      box-shadow:
+
+        0 0 12px #00ffe1,
+
+        0 0 30px
+        rgba(0, 255, 220, 0.6),
+
+        inset 0 0 20px
+        rgba(255, 255, 255, 0.25);
+
+      cursor: default;
+    }
+
+
+    .card.matched::before {
+
+      opacity: 0;
+    }
+
+
+    /* =========================================
+       ボタン
+       ========================================= */
+
+    #controls {
+
+      display: flex;
+
+      justify-content: center;
+
+      gap: 12px;
+
+      margin-bottom: 5px;
+    }
+
+
+    #resetBtn,
+    #resetResultBtn {
+
+      border-color: #a855ff;
+
+      box-shadow:
+
+        0 0 10px
+        rgba(168, 85, 255, 0.45),
+
+        inset 0 0 12px
+        rgba(168, 85, 255, 0.1);
+    }
+
+
+    #resetBtn:hover,
+    #resetResultBtn:hover {
+
+      box-shadow:
+
+        0 0 15px #a855ff,
+
+        0 0 30px
+        rgba(168, 85, 255, 0.5);
+    }
+
+
+    /* =========================================
+       結果画面
+       ========================================= */
+
+    #result-screen .panel {
+
+      max-width: 650px;
+
+      text-align: center;
+
+      padding-top: 55px;
+
+      padding-bottom: 55px;
+    }
+
+
+    #result-screen h1 {
+
+      margin-bottom: 25px;
+
+      font-size: 42px;
+    }
+
+
+    /* =========================================
+       CLEAR
+       ========================================= */
+
+    #clearTitle {
+
+      font-size: 48px;
+
+      font-weight: bold;
+
+      font-style: italic;
+
+      color: #00ffe1;
+
+      text-shadow:
+
+        0 0 5px #ffffff,
+
+        0 0 15px #00ffe1,
+
+        0 0 35px #00aaff;
+
+      margin-bottom: 25px;
+    }
+
+
+    /* =========================================
+       結果
+       ========================================= */
 
     #message {
-      margin-top: 10px;
-      min-height: 1.2em;
+
+      min-height: 90px;
+
+      margin: 20px auto 25px;
+
+      padding: 20px;
+
+      width: min(100%, 500px);
+
+      border: 1px solid
+        rgba(0, 220, 255, 0.6);
+
+      background:
+        rgba(0, 20, 50, 0.7);
+
+      color: #bdf6ff;
+
+      font-size: 20px;
+
+      line-height: 1.8;
+
+      box-shadow:
+
+        inset 0 0 20px
+        rgba(0, 150, 255, 0.1),
+
+        0 0 15px
+        rgba(0, 150, 255, 0.2);
     }
+
+
+    /* =========================================
+       システム文字
+       ========================================= */
+
+    .system-text {
+
+      position: absolute;
+
+      font-size: 10px;
+
+      letter-spacing: 0.2em;
+
+      color:
+        rgba(0, 210, 255, 0.55);
+    }
+
+
+    .system-text.top {
+
+      top: 15px;
+
+      right: 35px;
+    }
+
+
+    .system-text.bottom {
+
+      bottom: 15px;
+
+      left: 35px;
+    }
+
+
+    /* =========================================
+       小さい画面
+       ========================================= */
+
+    @media (max-width: 600px) {
+
+      body {
+
+        padding:
+          10px 0 25px;
+
+        align-items: flex-start;
+      }
+
+
+      .screen {
+
+        width: 100vw;
+
+        /*
+          ここも固定高さをやめる
+        */
+
+        min-height: auto;
+
+        padding:
+          15px 10px 25px;
+
+        justify-content: flex-start;
+      }
+
+
+      .panel {
+
+        padding:
+          35px 12px;
+
+        clip-path: none;
+
+        border-radius: 8px;
+      }
+
+
+      #start-screen {
+
+        min-height:
+          calc(100dvh - 35px);
+
+        justify-content: center;
+      }
+
+
+      #start-screen .panel {
+
+        padding:
+          50px 15px;
+
+      }
+
+
+      h1 {
+
+        font-size: 29px;
+
+        margin-bottom: 25px;
+      }
+
+
+      .sub-title {
+
+        font-size: 10px;
+
+        letter-spacing: 0.12em;
+
+        margin-bottom: 30px;
+      }
+
+
+      #startBtn {
+
+        min-width: 230px;
+
+        font-size: 18px;
+      }
+
+
+      /* ゲーム画面 */
+
+      #game-screen {
+
+        width: 100vw;
+
+        padding:
+          10px 5px 30px;
+      }
+
+
+      #game-screen .panel {
+
+        padding:
+          30px 8px 35px;
+      }
+
+
+      #game-screen h1 {
+
+        font-size: 23px;
+
+        margin-bottom: 18px;
+      }
+
+
+      /* ステータス */
+
+      #info {
+
+        gap: 7px;
+
+        margin-bottom: 15px;
+      }
+
+
+      .status-box {
+
+        min-width: 0;
+
+        flex: 1;
+
+        padding:
+          8px 5px;
+      }
+
+
+      .status-label {
+
+        font-size: 8px;
+
+        letter-spacing: 0.08em;
+      }
+
+
+      .status-value {
+
+        font-size: 18px;
+      }
+
+
+      /* ボード */
+
+      #board {
+
+        grid-template-columns:
+          repeat(4, 1fr);
+
+        width: min(94vw, 340px);
+
+        gap: 7px;
+
+        padding: 8px;
+
+        margin-bottom: 18px;
+      }
+
+
+      /* カード */
+
+      .card {
+
+        width: 100%;
+
+        height: 78px;
+
+        font-size: 24px;
+
+        border-radius: 6px;
+      }
+
+
+      .card::before {
+
+        font-size: 27px;
+      }
+
+
+      .card::after {
+
+        bottom: 10px;
+      }
+
+
+      /* リセットボタン */
+
+      #controls {
+
+        margin-bottom: 0;
+      }
+
+
+      #resetBtn {
+
+        min-width: 140px;
+
+        padding:
+          11px 20px;
+      }
+
+
+      /* 結果 */
+
+      #result-screen {
+
+        min-height:
+          calc(100dvh - 35px);
+
+        justify-content: center;
+      }
+
+
+      #result-screen .panel {
+
+        padding:
+          45px 15px;
+      }
+
+
+      #result-screen h1 {
+
+        font-size: 32px;
+      }
+
+
+      #clearTitle {
+
+        font-size: 40px;
+      }
+
+
+      #message {
+
+        font-size: 17px;
+
+        padding: 18px;
+      }
+
+
+      .system-text {
+
+        font-size: 7px;
+      }
+
+
+      .system-text.top {
+
+        right: 15px;
+      }
+
+
+      .system-text.bottom {
+
+        left: 15px;
+      }
+
+    }
+
+
+    /* =========================================
+       さらに小さい画面
+       ========================================= */
+
+    @media (max-height: 700px) and (min-width: 601px) {
+
+      body {
+
+        padding:
+          10px 0 20px;
+      }
+
+
+      .screen {
+
+        min-height: auto;
+
+        padding:
+          10px 0 20px;
+
+        justify-content: flex-start;
+      }
+
+
+      #game-screen .panel {
+
+        padding:
+          20px 25px 25px;
+      }
+
+
+      #game-screen h1 {
+
+        margin-bottom: 12px;
+
+        font-size: 30px;
+      }
+
+
+      #info {
+
+        margin-bottom: 12px;
+      }
+
+
+      #board {
+
+        gap: 8px;
+
+        padding: 10px;
+
+        margin-bottom: 12px;
+      }
+
+
+      .card {
+
+        height: 85px;
+      }
+
+    }
+
   </style>
+
 </head>
+
+
 <body>
-  <h1>神経衰弱 タイムアタック</h1>
 
-  <div id="info">
-    <span>経過時間: <span id="time">0.00</span> 秒</span>
-    <span>ミス回数: <span id="misses">0</span></span>
+
+  <!-- =========================================
+       スタート画面
+       ========================================= -->
+
+  <div id="start-screen" class="screen active">
+
+    <div class="panel">
+
+      <div class="system-text top">
+        SYSTEM // MEMORY ATTACK
+      </div>
+
+      <div class="system-text bottom">
+        READY // INITIALIZE
+      </div>
+
+
+      <h1>
+        神経衰弱<br>
+        タイムアタック
+      </h1>
+
+
+      <div class="sub-title">
+        FIND THE PAIRS / BREAK THE RECORD
+      </div>
+
+
+      <button id="startBtn">
+        スタート
+      </button>
+
+    </div>
+
   </div>
 
-  <div id="board"></div>
 
-  <div id="controls">
-    <button id="startBtn">スタート</button>
-    <button id="resetBtn">リセット</button>
+  <!-- =========================================
+       ゲーム画面
+       ========================================= -->
+
+  <div id="game-screen" class="screen">
+
+    <div class="panel">
+
+      <div class="system-text top">
+        SYSTEM // RUNNING
+      </div>
+
+      <div class="system-text bottom">
+        MODE // TIME ATTACK
+      </div>
+
+
+      <h1>
+        神経衰弱 タイムアタック
+      </h1>
+
+
+      <!-- ステータス -->
+
+      <div id="info">
+
+        <div class="status-box">
+
+          <span class="status-label">
+            ELAPSED TIME
+          </span>
+
+          <span class="status-value">
+
+            <span id="time">
+              0.00
+            </span>
+
+            秒
+
+          </span>
+
+        </div>
+
+
+        <div class="status-box">
+
+          <span class="status-label">
+            MISS COUNT
+          </span>
+
+          <span class="status-value">
+
+            <span id="misses">
+              0
+            </span>
+
+            回
+
+          </span>
+
+        </div>
+
+      </div>
+
+
+      <!-- カード -->
+
+      <div id="board"></div>
+
+
+      <!-- リセット -->
+
+      <div id="controls">
+
+        <button id="resetBtn">
+          ↻ リセット
+        </button>
+
+      </div>
+
+    </div>
+
   </div>
 
-  <div id="message"></div>
+
+  <!-- =========================================
+       結果画面
+       ========================================= -->
+
+  <div id="result-screen" class="screen">
+
+    <div class="panel">
+
+      <div class="system-text top">
+        SYSTEM // COMPLETE
+      </div>
+
+      <div class="system-text bottom">
+        RESULT // ANALYSIS
+      </div>
+
+
+      <h1>
+        ゲーム結果
+      </h1>
+
+
+      <div id="clearTitle">
+        CLEAR!
+      </div>
+
+
+      <div id="message"></div>
+
+
+      <button id="resetResultBtn">
+        ↻ もう一度プレイ
+      </button>
+
+    </div>
+
+  </div>
+
+
+  <!-- =========================================
+       JavaScript
+       ========================================= -->
 
   <script>
-    const boardEl = document.getElementById('board');
-    const timeEl = document.getElementById('time');
-    const missesEl = document.getElementById('misses');
-    const messageEl = document.getElementById('message');
-    const startBtn = document.getElementById('startBtn');
-    const resetBtn = document.getElementById('resetBtn');
 
-    const PAIRS = 8; // 4x4
+
+    /* =========================
+       HTML要素
+       ========================= */
+
+    const startScreen =
+      document.getElementById("start-screen");
+
+    const gameScreen =
+      document.getElementById("game-screen");
+
+    const resultScreen =
+      document.getElementById("result-screen");
+
+
+    const boardEl =
+      document.getElementById("board");
+
+    const timeEl =
+      document.getElementById("time");
+
+    const missesEl =
+      document.getElementById("misses");
+
+    const messageEl =
+      document.getElementById("message");
+
+
+    const startBtn =
+      document.getElementById("startBtn");
+
+    const resetBtn =
+      document.getElementById("resetBtn");
+
+    const resetResultBtn =
+      document.getElementById("resetResultBtn");
+
+
+    /* =========================
+       ゲーム用変数
+       ========================= */
+
+    const PAIRS = 8;
+
     let cards = [];
+
     let firstCard = null;
+
     let secondCard = null;
+
     let lockBoard = false;
 
+    let gamestart = false;
+
     let startTime = null;
+
     let timerId = null;
+
     let finished = false;
+
     let misses = 0;
+
     let matchedCount = 0;
 
+
+    /* =========================
+       カードを作成
+       ========================= */
+
     function createDeck() {
+
       const values = [];
-      for (let i = 1; i <= PAIRS; i++) {
-        values.push(i, i); // ペアを作る
+
+
+      for (
+        let i = 1;
+        i <= PAIRS;
+        i++
+      ) {
+
+        values.push(i, i);
+
       }
-      // シャッフル
-      for (let i = values.length - 1; i > 0; i--) {
-        const j = Math.floor(Math.random() * (i + 1));
-        [values[i], values[j]] = [values[j], values[i]];
+
+
+      /* シャッフル */
+
+      for (
+        let i = values.length - 1;
+        i > 0;
+        i--
+      ) {
+
+        const j =
+          Math.floor(
+            Math.random() * (i + 1)
+          );
+
+
+        [
+          values[i],
+          values[j]
+        ] =
+        [
+          values[j],
+          values[i]
+        ];
+
       }
+
+
       return values;
+
     }
+
+
+    /* =========================
+       ボードを作成
+       ========================= */
 
     function setupBoard() {
+
       boardEl.innerHTML = '';
+
       cards = [];
-      const values = createDeck();
 
-      values.forEach((value, index) => {
-        const cardEl = document.createElement('div');
-        cardEl.classList.add('card');
-        cardEl.dataset.value = value;
-        cardEl.dataset.index = index;
-        cardEl.textContent = ''; // 裏側は空
 
-        cardEl.addEventListener('click', () => handleCardClick(cardEl));
-        boardEl.appendChild(cardEl);
-        cards.push(cardEl);
-      });
+      const values =
+        createDeck();
+
+
+      values.forEach(
+        (value, index) => {
+
+          const cardEl =
+            document.createElement(
+              'div'
+            );
+
+
+          cardEl.classList.add(
+            'card'
+          );
+
+
+          cardEl.dataset.value =
+            value;
+
+
+          cardEl.dataset.index =
+            index;
+
+
+          cardEl.textContent =
+            '';
+
+
+          cardEl.addEventListener(
+            'click',
+            () =>
+              handleCardClick(
+                cardEl
+              )
+          );
+
+
+          boardEl.appendChild(
+            cardEl
+          );
+
+
+          cards.push(
+            cardEl
+          );
+
+        }
+      );
+
     }
+
+
+    /* =========================
+       ゲーム開始
+       ========================= */
 
     function startGame() {
+
+      /* スタート画面を非表示 */
+
+      startScreen.classList.remove(
+        "active"
+      );
+
+
+      /* ゲーム画面を表示 */
+
+      gameScreen.classList.add(
+        "active"
+      );
+
+
+      /* ゲーム状態 */
+
       finished = false;
+
+      gamestart = true;
+
+
       misses = 0;
+
       matchedCount = 0;
+
       firstCard = null;
+
       secondCard = null;
+
       lockBoard = false;
-      missesEl.textContent = misses;
-      messageEl.textContent = '';
+
+
+      missesEl.textContent =
+        misses;
+
+
+      timeEl.textContent =
+        "0.00";
+
+
+      messageEl.textContent =
+        '';
+
+
+      /* カード作成 */
 
       setupBoard();
-      startTime = performance.now();
+
+
+      /* タイマー開始 */
+
+      startTime =
+        performance.now();
+
+
       if (timerId) {
-        clearInterval(timerId);
+
+        clearInterval(
+          timerId
+        );
+
       }
-      timerId = setInterval(updateTime, 50);
+
+
+      timerId =
+        setInterval(
+          updateTime,
+          50
+        );
+
     }
+
+
+    /* =========================
+       リセット
+       ========================= */
 
     function resetGame() {
-      clearInterval(timerId);
+
+      clearInterval(
+        timerId
+      );
+
       timerId = null;
-      timeEl.textContent = '0.00';
-      missesEl.textContent = '0';
-      messageEl.textContent = '';
+
+
+      /* ゲーム停止 */
+
+      gamestart = false;
+
       finished = false;
+
+
       misses = 0;
+
       matchedCount = 0;
+
       firstCard = null;
+
       secondCard = null;
+
       lockBoard = false;
+
+
+      /* 表示リセット */
+
+      timeEl.textContent =
+        "0.00";
+
+      missesEl.textContent =
+        "0";
+
+      messageEl.textContent =
+        "";
+
+
+      /* ゲーム画面を非表示 */
+
+      gameScreen.classList.remove(
+        "active"
+      );
+
+
+      /* 結果画面を非表示 */
+
+      resultScreen.classList.remove(
+        "active"
+      );
+
+
+      /* スタート画面を表示 */
+
+      startScreen.classList.add(
+        "active"
+      );
+
+
+      /* ボード初期化 */
+
       setupBoard();
+
     }
+
+
+    /* =========================
+       タイマー更新
+       ========================= */
 
     function updateTime() {
-      if (!startTime || finished) return;
-      const now = performance.now();
-      const elapsed = (now - startTime) / 1000;
-      timeEl.textContent = elapsed.toFixed(2);
+
+      if (
+        !startTime ||
+        finished
+      ) {
+
+        return;
+
+      }
+
+
+      const now =
+        performance.now();
+
+
+      const elapsed =
+        (now - startTime) / 1000;
+
+
+      timeEl.textContent =
+        elapsed.toFixed(2);
+
     }
 
-    function handleCardClick(cardEl) {
-      if (lockBoard || finished) return;
-      if (cardEl.classList.contains('flipped') || cardEl.classList.contains('matched')) return;
 
-      flipCard(cardEl);
+    /* =========================
+       カードクリック
+       ========================= */
+
+    function handleCardClick(
+      cardEl
+    ) {
+
+      /* ゲーム中でなければ何もしない */
+
+      if (
+        !gamestart ||
+        lockBoard ||
+        finished
+      ) {
+
+        return;
+
+      }
+
+
+      /* すでに開いているカードは無視 */
+
+      if (
+        cardEl.classList.contains(
+          'flipped'
+        ) ||
+
+        cardEl.classList.contains(
+          'matched'
+        )
+      ) {
+
+        return;
+
+      }
+
+
+      flipCard(
+        cardEl
+      );
+
+
+      /* 1枚目 */
 
       if (!firstCard) {
-        firstCard = cardEl;
+
+        firstCard =
+          cardEl;
+
         return;
+
       }
 
-      secondCard = cardEl;
+
+      /* 2枚目 */
+
+      secondCard =
+        cardEl;
+
+
+      /* ペア判定 */
+
       checkMatch();
+
     }
 
-    function flipCard(cardEl) {
-      cardEl.classList.add('flipped');
-      cardEl.textContent = cardEl.dataset.value;
+
+    /* =========================
+       カードを開く
+       ========================= */
+
+    function flipCard(
+      cardEl
+    ) {
+
+      cardEl.classList.add(
+        'flipped'
+      );
+
+
+      cardEl.textContent =
+        cardEl.dataset.value;
+
     }
 
-    function unflipCard(cardEl) {
-      cardEl.classList.remove('flipped');
-      cardEl.textContent = '';
+
+    /* =========================
+       カードを閉じる
+       ========================= */
+
+    function unflipCard(
+      cardEl
+    ) {
+
+      cardEl.classList.remove(
+        'flipped'
+      );
+
+
+      cardEl.textContent =
+        '';
+
     }
+
+
+    /* =========================
+       ペア判定
+       ========================= */
 
     function checkMatch() {
-      const isMatch = firstCard.dataset.value === secondCard.dataset.value;
+
+      const isMatch =
+        firstCard.dataset.value ===
+        secondCard.dataset.value;
+
+
+      /* ペア一致 */
 
       if (isMatch) {
-        firstCard.classList.add('matched');
-        secondCard.classList.add('matched');
+
+        firstCard.classList.add(
+          'matched'
+        );
+
+        secondCard.classList.add(
+          'matched'
+        );
+
+
         matchedCount += 2;
+
+
         resetTurn();
-        if (matchedCount === PAIRS * 2) {
+
+
+        /* 全部揃った */
+
+        if (
+          matchedCount ===
+          PAIRS * 2
+        ) {
+
           finishGame();
+
         }
-      } else {
-        lockBoard = true;
-        misses++;
-        missesEl.textContent = misses;
-        setTimeout(() => {
-          unflipCard(firstCard);
-          unflipCard(secondCard);
-          resetTurn();
-        }, 700);
+
       }
+
+
+      /* ペア不一致 */
+
+      else {
+
+        lockBoard = true;
+
+
+        misses++;
+
+
+        missesEl.textContent =
+          misses;
+
+
+        setTimeout(
+          () => {
+
+            unflipCard(
+              firstCard
+            );
+
+            unflipCard(
+              secondCard
+            );
+
+            resetTurn();
+
+          },
+          700
+        );
+
+      }
+
     }
+
+
+    /* =========================
+       ターンリセット
+       ========================= */
 
     function resetTurn() {
-      [firstCard, secondCard] = [null, null];
+
+      [
+        firstCard,
+        secondCard
+      ] =
+      [
+        null,
+        null
+      ];
+
+
       lockBoard = false;
+
     }
+
+
+    /* =========================
+       ゲーム終了
+       ========================= */
 
     function finishGame() {
+
       finished = true;
-      clearInterval(timerId);
+
+      gamestart = false;
+
+
+      clearInterval(
+        timerId
+      );
+
       timerId = null;
-      const finalTime = parseFloat(timeEl.textContent);
-      messageEl.textContent = `クリア！タイム: ${finalTime.toFixed(2)} 秒 / ミス: ${misses} 回`;
+
+
+      const finalTime =
+        parseFloat(
+          timeEl.textContent
+        );
+
+
+      /* 結果表示 */
+
+      messageEl.innerHTML = `
+
+        <div>
+
+          <span style="
+            color:#72ddff;
+          ">
+            TIME
+          </span>
+
+          <br>
+
+          <strong style="
+            font-size:32px;
+            color:#ffffff;
+            text-shadow:
+              0 0 12px #00d9ff;
+          ">
+            ${finalTime.toFixed(2)}
+          </strong>
+
+          秒
+
+        </div>
+
+
+        <div>
+
+          <span style="
+            color:#c58cff;
+          ">
+            MISS
+          </span>
+
+          <br>
+
+          <strong style="
+            font-size:28px;
+            color:#ffffff;
+            text-shadow:
+              0 0 12px #a855ff;
+          ">
+            ${misses}
+          </strong>
+
+          回
+
+        </div>
+
+      `;
+
+
+      /* ゲーム画面を非表示 */
+
+      gameScreen.classList.remove(
+        "active"
+      );
+
+
+      /* 結果画面を表示 */
+
+      resultScreen.classList.add(
+        "active"
+      );
+
     }
 
-    startBtn.addEventListener('click', startGame);
-    resetBtn.addEventListener('click', resetGame);
 
-    // 初期表示（まだタイムは動かさない）
+    /* =========================
+       ボタンイベント
+       ========================= */
+
+    startBtn.addEventListener(
+      "click",
+      startGame
+    );
+
+
+    resetBtn.addEventListener(
+      "click",
+      resetGame
+    );
+
+
+    resetResultBtn.addEventListener(
+      "click",
+      resetGame
+    );
+
+
+    /* =========================
+       初期状態
+       ========================= */
+
+    startScreen.classList.add(
+      "active"
+    );
+
+
+    gameScreen.classList.remove(
+      "active"
+    );
+
+
+    resultScreen.classList.remove(
+      "active"
+    );
+
+
+    /* 初期ボード作成 */
+
     setupBoard();
+
+
   </script>
+
 </body>
+
 </html>
